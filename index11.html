@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - Precision Liquid Fusion</title>
+    <style>
+        :root {
+            --bg: #000;
+            --u-x: 50%;
+            --u-y: 50%;
+            --pos-c: 50%;
+            --pos-t: 35%;
+            --pos-b: 65%;
+            --op-c: 0.6;
+            --op-t: 0.2;
+            --op-b: 0.2;
+            --color: #00f2fe;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* OBJETO PEQUEÑO: Para apreciar la refracción nítida */
+        .light-source {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            /* Reducido para mayor detalle */
+            background: radial-gradient(circle, var(--color) 0%, #7000ff 50%, transparent 80%);
+            filter: blur(30px);
+            border-radius: 50%;
+            z-index: 1;
+            mix-blend-mode: screen;
+            top: 0;
+            left: 0;
+        }
+
+        .canvas {
+            position: relative;
+            width: 800px;
+            height: 480px;
+            z-index: 10;
+        }
+
+        .glass {
+            width: 100%;
+            height: 100%;
+            border-radius: 44px;
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(120px) saturate(260%) contrast(115%);
+            -webkit-backdrop-filter: blur(120px) saturate(260%) contrast(115%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.9);
+        }
+
+        /* Capas de bordes ópticos */
+        .refraction-mask {
+            position: absolute;
+            inset: 0;
+            border-radius: 44px;
+            padding: 3.5px;
+            pointer-events: none;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            mix-blend-mode: plus-lighter;
+        }
+
+        .t-ref {
+            background: radial-gradient(circle at var(--u-x) var(--pos-t), var(--color) 0%, transparent 50%);
+            opacity: var(--op-t);
+        }
+
+        .b-ref {
+            background: radial-gradient(circle at var(--u-x) var(--pos-b), var(--color) 0%, transparent 50%);
+            opacity: var(--op-b);
+        }
+
+        /* Reflejo Central (El objeto visto a través del cristal) */
+        .c-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--u-x) var(--pos-c), var(--color) 0%, transparent 55%);
+            opacity: var(--op-c);
+            mix-blend-mode: soft-light;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="light-source" id="light"></div>
+
+    <div class="canvas">
+        <div class="glass" id="card">
+            <div class="c-glow"></div>
+            <div class="refraction-mask t-ref"></div>
+            <div class="refraction-mask b-ref"></div>
+        </div>
+    </div>
+
+    <script>
+        const light = document.getElementById('light');
+        const card = document.getElementById('card');
+        const root = document.documentElement;
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            // Centrado perfecto del objeto pequeño
+            light.style.transform = `translate3d(${clientX - 90}px, ${clientY - 90}px, 0)`;
+
+            const rect = card.getBoundingClientRect();
+            const relX = ((clientX - rect.left) / rect.width) * 100;
+            const relY = ((clientY - rect.top) / rect.height) * 100;
+
+            const ny = (relY - 50) / 50;
+            const absNy = Math.abs(ny);
+
+            root.style.setProperty('--u-x', `${relX}%`);
+            root.style.setProperty('--pos-c', `${relY}%`);
+
+            let posT, posB, opT, opB;
+
+            // LÓGICA DE FUSIÓN ANTICIPADA:
+            // Usamos un umbral de 0.7 para que la fusión ocurra "milímetros antes"
+            const threshold = 0.75;
+            const fusionFactor = Math.max(0, (absNy - threshold) / (1 - threshold));
+
+            if (ny < 0) { // Hacia ARRIBA
+                // El reflejo superior "salta" hacia el centro cuando el mouse se acerca al borde
+                // (35% -> 15% -> 0%)
+                posT = 35 * (1 - absNy);
+
+                // Repulsión del inferior hacia afuera
+                posB = 65 + (absNy * 30);
+
+                // Opacidades
+                opT = 0.2 + (absNy * 0.7);
+                opB = 0.2 * (1 - absNy);
+            } else { // Hacia ABAJO
+                posB = 100 - (35 * (1 - absNy));
+                posT = 35 - (absNy * 30);
+
+                opB = 0.2 + (absNy * 0.7);
+                opT = 0.2 * (1 - absNy);
+            }
+
+            // Aplicar variables
+            root.style.setProperty('--pos-t', `${posT}%`);
+            root.style.setProperty('--pos-b', `${posB}%`);
+            root.style.setProperty('--op-t', opT);
+            root.style.setProperty('--op-b', opB);
+
+            // Reducir brillo central cuando se fusiona para dar paso al borde
+            root.style.setProperty('--op-c', 0.6 * (1 - fusionFactor));
+        });
+    </script>
+</body>
+
+</html>

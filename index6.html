@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - Precision Liquid Optics</title>
+    <style>
+        :root {
+            --bg: #030305;
+            --u-x: 50%;
+            --u-y: 50%;
+            /* Opacidades dinámicas */
+            --o-top: 0;
+            --o-bottom: 0;
+            --o-center: 0;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Objeto de luz real detrás */
+        .light-source {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #4facfe 0%, #00f2fe 30%, transparent 70%);
+            filter: blur(40px);
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        .container {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            z-index: 10;
+        }
+
+        .liquid-glass {
+            width: 100%;
+            height: 100%;
+            border-radius: 48px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(80px) saturate(200%) brightness(1.1);
+            -webkit-backdrop-filter: blur(80px) saturate(200%) brightness(1.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* CAPAS DE REFRACCIÓN */
+        .refraction-layer {
+            position: absolute;
+            inset: 0;
+            border-radius: 48px;
+            padding: 3px;
+            pointer-events: none;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+
+        /* Borde de Entrada (Superior) */
+        .edge-near {
+            background: radial-gradient(circle at var(--u-x) -10%,
+                    rgba(255, 255, 255, var(--o-top)) 0%,
+                    transparent 50%);
+            z-index: 5;
+        }
+
+        /* Borde Opuesto (Inferior) - El reflejo que aparece al tocar el superior */
+        .edge-far {
+            background: radial-gradient(circle at var(--u-x) 110%,
+                    rgba(255, 255, 255, var(--o-bottom)) 0%,
+                    transparent 50%);
+            z-index: 4;
+        }
+
+        /* Reflejo Central (Cuerpo del cristal) */
+        .center-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--u-x) var(--u-y),
+                    rgba(255, 255, 255, var(--o-center)) 0%,
+                    transparent 60%);
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+
+        .ui-label {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            letter-spacing: 4px;
+            font-weight: 200;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="light-source" id="light"></div>
+
+    <div class="container">
+        <div class="liquid-glass">
+            <div class="refraction-layer edge-near"></div>
+            <div class="refraction-layer edge-far"></div>
+            <div class="center-glow"></div>
+            <div class="ui-label">MAC TAHOE OPTICS</div>
+        </div>
+    </div>
+
+    <script>
+        const light = document.getElementById('light');
+        const root = document.documentElement;
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            const winW = window.innerWidth;
+            const winH = window.innerHeight;
+
+            // Mover fuente de luz
+            light.style.transform = `translate(${clientX - 150}px, ${clientY - 150}px)`;
+
+            // Cálculo de posición relativa a la tarjeta (800x500 centrada)
+            const cardW = 800; const cardH = 500;
+            const cardX = (winW - cardW) / 2;
+            const cardY = (winH - cardH) / 2;
+
+            const relX = ((clientX - cardX) / cardW) * 100;
+            const relY = ((clientY - cardY) / cardH) * 100;
+
+            root.style.setProperty('--u-x', `${relX}%`);
+            root.style.setProperty('--u-y', `${relY}%`);
+
+            // LÓGICA ÓPTICA TAHOE:
+            // Normalize y de -1 a 1 (donde 0 es el centro de la tarjeta)
+            const ny = (relY - 50) / 50;
+            const absNy = Math.abs(ny);
+
+            // 1. Reflejo Central: Máximo en el centro (ny=0)
+            const oCenter = Math.max(0, 0.4 - absNy * 0.4);
+
+            // 2. Reflejo Superior (Near): Aumenta cuando ny se acerca a -1 (arriba)
+            // Pero como pediste, también brilla un poco cuando está en el centro
+            const oTop = ny < 0 ? Math.abs(ny) * 0.9 : (1 - absNy) * 0.2;
+
+            // 3. Reflejo Inferior (Far): Aparece en el borde opuesto
+            // Al tocar arriba (ny = -1), el borde inferior debe brillar.
+            const oBottom = ny < 0 ? (Math.abs(ny) * 0.7) : (ny * 0.9);
+
+            root.style.setProperty('--o-center', oCenter);
+            root.style.setProperty('--o-top', oTop);
+            root.style.setProperty('--o-bottom', oBottom);
+        });
+    </script>
+</body>
+
+</html>

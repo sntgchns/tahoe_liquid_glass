@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - Optical Liquid Glass</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --glass-base: rgba(255, 255, 255, 0.03);
+            /* Variables dinámicas que controlaremos con JS */
+            --light-x: 50%;
+            --light-y: 50%;
+            --edge-opacity-near: 0.8;
+            --edge-opacity-far: 0.3;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Objeto detrás del cristal */
+        .object-behind {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, #00d4ff 0%, #ff007a 50%, transparent 75%);
+            filter: blur(50px);
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        .canvas {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            z-index: 10;
+            perspective: 1200px;
+        }
+
+        .glass-card {
+            width: 100%;
+            height: 100%;
+            background: var(--glass-base);
+            border-radius: 40px;
+            position: relative;
+            backdrop-filter: blur(80px) saturate(200%) brightness(1.1);
+            -webkit-backdrop-filter: blur(80px) saturate(200%) brightness(1.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        /* REFLEJO DINÁMICO EN LOS BORDES (Técnica de doble gradiente) */
+        .glass-card::before,
+        .glass-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 40px;
+            padding: 2.5px;
+            /* Grosor del borde óptico */
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* Borde cercano: Reacciona donde está el objeto */
+        .glass-card::before {
+            background: radial-gradient(circle at var(--light-x) var(--light-y),
+                    rgba(255, 255, 255, var(--edge-opacity-near)) 0%,
+                    transparent 40%);
+            z-index: 5;
+        }
+
+        /* Borde opuesto: El reflejo "eco" de la luz interna */
+        .glass-card::after {
+            background: radial-gradient(circle at calc(100% - var(--light-x)) calc(100% - var(--light-y)),
+                    rgba(255, 255, 255, var(--edge-opacity-far)) 0%,
+                    transparent 30%);
+            z-index: 4;
+            filter: blur(1px);
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            padding: 50px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin: 0;
+            font-weight: 800;
+        }
+
+        p {
+            opacity: 0.6;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="object-behind" id="obj"></div>
+
+    <div class="canvas">
+        <div class="glass-card" id="card">
+            <div class="content">
+                <h1>Optical Glass</h1>
+                <p>La luz se refracta en el borde más cercano y proyecta un eco en el opuesto.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const card = document.getElementById('card');
+        const obj = document.getElementById('obj');
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+
+            // 1. Mover el objeto detrás
+            obj.style.transform = `translate(${clientX - 175}px, ${clientY - 175}px)`;
+
+            // 2. Calcular posición relativa para los bordes
+            const rect = card.getBoundingClientRect();
+            const x = ((clientX - rect.left) / rect.width) * 100;
+            const y = ((clientY - rect.top) / rect.height) * 100;
+
+            card.style.setProperty('--light-x', `${x}%`);
+            card.style.setProperty('--light-y', `${y}%`);
+
+            // 3. Lógica de opacidad óptica
+            // Si el objeto está en el centro (50%), el reflejo es equilibrado.
+            // Si está en un borde, el cercano brilla más y el lejano se atenúa.
+            const distFromCenterX = Math.abs(x - 50) / 50;
+            const distFromCenterY = Math.abs(y - 50) / 50;
+            const maxDist = Math.max(distFromCenterX, distFromCenterY);
+
+            const nearOpacity = 0.4 + (maxDist * 0.6); // Sube cuando te acercas al borde
+            const farOpacity = 0.4 - (maxDist * 0.3);  // Baja cuando te alejas del centro
+
+            card.style.setProperty('--edge-opacity-near', nearOpacity);
+            card.style.setProperty('--edge-opacity-far', farOpacity);
+
+            // 4. Leve rotación física
+            const rx = (clientY - (rect.top + rect.height / 2)) / 30;
+            const ry = (clientX - (rect.left + rect.width / 2)) / 30;
+            card.style.transform = `rotateX(${-rx}deg) rotateY(${ry}deg)`;
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - Pure Liquid Glass</title>
+    <style>
+        :root {
+            --bg: #08080a;
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, system-ui, sans-serif;
+            overflow: hidden;
+        }
+
+        /* El objeto que pasa por detrás (la "ventana" de luz) */
+        .back-light {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #3a86ff 0%, #8338ec 40%, transparent 70%);
+            filter: blur(40px);
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Contenedor principal */
+        .window-container {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            z-index: 10;
+            perspective: 2000px;
+        }
+
+        /* La capa de vidrio */
+        .glass-pane {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 44px;
+            position: relative;
+
+            /* El efecto de desenfoque líquido */
+            backdrop-filter: blur(70px) saturate(210%) contrast(110%);
+            -webkit-backdrop-filter: blur(70px) saturate(210%) contrast(110%);
+
+            border: 1px solid var(--glass-border);
+            box-shadow:
+                0 50px 100px rgba(0, 0, 0, 0.5),
+                inset 0 0 40px rgba(255, 255, 255, 0.05);
+
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+
+        /* REFRACCIÓN EN LOS BORDES: El brillo dinámico */
+        .edge-refraction {
+            position: absolute;
+            inset: 0;
+            border-radius: 44px;
+            pointer-events: none;
+            /* Usamos un gradiente cónico para mover el reflejo según el mouse */
+            background: conic-gradient(from var(--angle) at var(--x) var(--y),
+                    transparent 0%,
+                    rgba(255, 255, 255, 0.8) 10%,
+                    transparent 20%,
+                    transparent 80%,
+                    rgba(255, 255, 255, 0.8) 90%,
+                    transparent 100%);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            padding: 2px;
+            /* Grosor del borde cristalino */
+            opacity: 0.6;
+        }
+
+        .content {
+            padding: 60px;
+            color: white;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -2px;
+        }
+
+        p {
+            font-size: 1.2rem;
+            opacity: 0.6;
+            max-width: 400px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="back-light" id="light"></div>
+
+    <div class="window-container">
+        <div class="glass-pane" id="pane">
+            <div class="edge-refraction" id="edges"></div>
+            <div class="content">
+                <h1>Tahoe</h1>
+                <p>Mueve el ratón para ver cómo los bordes atrapan la luz y el fondo se refracta de forma líquida.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pane = document.getElementById('pane');
+        const light = document.getElementById('light');
+        const edges = document.getElementById('edges');
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+
+            // 1. Mueve la luz detrás del cristal
+            light.style.left = `${clientX - 200}px`;
+            light.style.top = `${clientY - 200}px`;
+
+            // 2. Calcula posición relativa para el brillo de los bordes
+            const rect = pane.getBoundingClientRect();
+            const relX = ((clientX - rect.left) / rect.width) * 100;
+            const relY = ((clientY - rect.top) / rect.height) * 100;
+
+            edges.style.setProperty('--x', `${relX}%`);
+            edges.style.setProperty('--y', `${relY}%`);
+
+            // 3. Calcula ángulo de inclinación 3D
+            const rotateY = (clientX / window.innerWidth - 0.5) * 10;
+            const rotateX = (clientY / window.innerHeight - 0.5) * -10;
+            pane.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+
+            // 4. Mueve el ángulo del gradiente cónico del borde
+            const angle = Math.atan2(clientY - (rect.top + rect.height / 2), clientX - (rect.left + rect.width / 2)) * (180 / Math.PI);
+            edges.style.setProperty('--angle', `${angle}deg`);
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - High Separation Liquid</title>
+    <style>
+        :root {
+            --bg: #000;
+            --u-x: 50%;
+            /* Separación aumentada: los bordes flotan más cerca del centro inicialmente */
+            --pos-c: 50%;
+            --pos-t: 35%;
+            --pos-b: 65%;
+            --op-c: 0.5;
+            --op-t: 0.2;
+            --op-b: 0.2;
+            --color: #00f2fe;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .light-source {
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, var(--color) 0%, #7000ff 30%, #ff00c8 60%, transparent 85%);
+            filter: blur(60px);
+            border-radius: 50%;
+            z-index: 1;
+            mix-blend-mode: screen;
+            top: 0;
+            left: 0;
+        }
+
+        .canvas {
+            position: relative;
+            width: 850px;
+            height: 520px;
+            z-index: 10;
+        }
+
+        .glass {
+            width: 100%;
+            height: 100%;
+            border-radius: 56px;
+            background: rgba(255, 255, 255, 0.015);
+            backdrop-filter: blur(110px) saturate(250%) contrast(110%);
+            -webkit-backdrop-filter: blur(110px) saturate(250%) contrast(110%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.9);
+        }
+
+        .refraction-mask {
+            position: absolute;
+            inset: 0;
+            border-radius: 56px;
+            padding: 4px;
+            pointer-events: none;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            mix-blend-mode: plus-lighter;
+        }
+
+        .t-ref {
+            background: radial-gradient(circle at var(--u-x) var(--pos-t), var(--color) 0%, transparent 55%);
+            opacity: var(--op-t);
+        }
+
+        .b-ref {
+            background: radial-gradient(circle at var(--u-x) var(--pos-b), var(--color) 0%, transparent 55%);
+            opacity: var(--op-b);
+        }
+
+        .c-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--u-x) var(--pos-c), var(--color) 0%, transparent 65%);
+            opacity: var(--op-c);
+            mix-blend-mode: soft-light;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="light-source" id="light"></div>
+
+    <div class="canvas">
+        <div class="glass" id="card">
+            <div class="c-glow"></div>
+            <div class="refraction-mask t-ref"></div>
+            <div class="refraction-mask b-ref"></div>
+        </div>
+    </div>
+
+    <script>
+        const light = document.getElementById('light');
+        const card = document.getElementById('card');
+        const root = document.documentElement;
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            light.style.transform = `translate3d(${clientX - 225}px, ${clientY - 225}px, 0)`;
+
+            const rect = card.getBoundingClientRect();
+            const relX = ((clientX - rect.left) / rect.width) * 100;
+            const relY = ((clientY - rect.top) / rect.height) * 100;
+
+            const ny = (relY - 50) / 50;
+            const absNy = Math.abs(ny);
+
+            root.style.setProperty('--u-x', `${relX}%`);
+            root.style.setProperty('--u-y', `${relY}%`);
+            root.style.setProperty('--pos-c', `${relY}%`);
+
+            let posT, posB, opT, opB, opC;
+
+            // CONFIGURACIÓN DE SEPARACIÓN:
+            // Centro en 50%. Superior inicial en 35%. Inferior inicial en 65%.
+            if (ny < 0) {
+                // HACIA ARRIBA: El superior recorre del 35% al 0%
+                posT = 35 * (1 - absNy);
+                // El inferior se aleja del 65% al 100%
+                posB = 65 + (absNy * 35);
+
+                opT = 0.2 + (absNy * 0.7); // Se intensifica mucho al chocar
+                opB = 0.2 * (1 - absNy);   // El opuesto casi desaparece
+                opC = 0.5 * (1 - absNy);
+            } else {
+                // HACIA ABAJO: El inferior recorre del 65% al 100%
+                posB = 100 - (35 * (1 - absNy));
+                // El superior se aleja del 35% al 0%
+                posT = 35 - (absNy * 35);
+
+                opB = 0.2 + (absNy * 0.7);
+                opT = 0.2 * (1 - absNy);
+                opC = 0.5 * (1 - absNy);
+            }
+
+            root.style.setProperty('--pos-t', `${posT}%`);
+            root.style.setProperty('--pos-b', `${posB}%`);
+            root.style.setProperty('--op-t', opT);
+            root.style.setProperty('--op-b', opB);
+            root.style.setProperty('--op-c', opC);
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - Deep Internal Refraction</title>
+    <style>
+        :root {
+            --bg: #020204;
+            --mouse-x: 50%;
+            --mouse-y: 50%;
+            /* Desplazamiento del reflejo interno (paralaje) */
+            --refraction-y-top: 20%;
+            --refraction-y-bottom: 80%;
+            --opacity-near: 0;
+            --opacity-far: 0;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        .object-behind {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #00f2fe 0%, #7000ff 40%, transparent 70%);
+            filter: blur(50px);
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        .card-container {
+            position: relative;
+            width: 850px;
+            height: 520px;
+            z-index: 10;
+        }
+
+        .tahoe-glass {
+            width: 100%;
+            height: 100%;
+            border-radius: 48px;
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(90px) saturate(210%) brightness(1.1);
+            -webkit-backdrop-filter: blur(90px) saturate(210%) brightness(1.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.8);
+        }
+
+        /* BORDES ÓPTICOS DINÁMICOS */
+        .edge {
+            position: absolute;
+            inset: 0;
+            border-radius: 48px;
+            padding: 3px;
+            pointer-events: none;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+
+        /* El reflejo que "viaja" desde adentro hacia el borde */
+        .edge-near {
+            background: radial-gradient(circle at var(--mouse-x) var(--refraction-y-top),
+                    rgba(255, 255, 255, var(--opacity-near)) 0%,
+                    transparent 40%);
+            z-index: 5;
+        }
+
+        /* El reflejo espejo en el borde opuesto */
+        .edge-far {
+            background: radial-gradient(circle at var(--mouse-x) var(--refraction-y-bottom),
+                    rgba(255, 255, 255, var(--opacity-far)) 0%,
+                    transparent 40%);
+            z-index: 4;
+        }
+
+        .label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 0.7rem;
+            letter-spacing: 10px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="object-behind" id="obj"></div>
+
+    <div class="card-container">
+        <div class="tahoe-glass">
+            <div class="edge edge-near"></div>
+            <div class="edge edge-far"></div>
+            <div class="label">OPTICAL LIQUID</div>
+        </div>
+    </div>
+
+    <script>
+        const obj = document.getElementById('obj');
+        const root = document.documentElement;
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            const winW = window.innerWidth;
+            const winH = window.innerHeight;
+
+            obj.style.transform = `translate(${clientX - 200}px, ${clientY - 200}px)`;
+
+            // Posición relativa a la tarjeta
+            const cardW = 850; const cardH = 520;
+            const cardX = (winW - cardW) / 2;
+            const cardY = (winH - cardH) / 2;
+
+            const relX = ((clientX - cardX) / cardW) * 100;
+            const relY = ((clientY - cardY) / cardH) * 100;
+
+            // ny va de -1 (arriba) a 1 (abajo)
+            const ny = (relY - 50) / 50;
+            const absNy = Math.abs(ny);
+
+            // EL TRUCO ÓPTICO:
+            // Al estar arriba (ny = -1), el origen del reflejo está en 20% (más adentro).
+            // A medida que bajamos al centro (ny = 0), el origen se mueve hacia el borde (0%).
+            let refractionY;
+            if (ny < 0) {
+                // Objeto arriba: el reflejo nace en el 20% y sube al 0% al llegar al centro
+                refractionY = (absNy * 20);
+            } else {
+                // Objeto abajo: proceso inverso
+                refractionY = 100 - (absNy * 20);
+            }
+
+            root.style.setProperty('--mouse-x', `${relX}%`);
+            root.style.setProperty('--refraction-y-top', `${refractionY}%`);
+            root.style.setProperty('--refraction-y-bottom', `${100 - refractionY}%`);
+
+            // Opacidades: El borde opuesto siempre brilla por reflexión interna
+            const nearOp = 0.2 + (absNy * 0.7);
+            const farOp = 0.1 + (absNy * 0.4);
+
+            root.style.setProperty('--opacity-near', nearOp);
+            root.style.setProperty('--opacity-far', farOp);
+        });
+    </script>
+</body>
+
+</html>

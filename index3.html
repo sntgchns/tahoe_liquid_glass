@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - True Liquid Glass</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --inner-glow: rgba(255, 255, 255, 0.15);
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Objeto que se mueve por detrás para probar la refracción */
+        .object-behind {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #00f2ff, #7000ff, transparent 70%);
+            border-radius: 50%;
+            filter: blur(20px);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Contenedor de la ventana */
+        .glass-canvas {
+            position: relative;
+            width: 850px;
+            height: 500px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* El panel de cristal principal */
+        .liquid-glass {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 40px;
+
+            /* El corazón del efecto: desenfoque masivo y contraste */
+            backdrop-filter: blur(80px) saturate(210%) contrast(120%);
+            -webkit-backdrop-filter: blur(80px) saturate(210%) contrast(120%);
+
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            box-shadow:
+                inset 0 0 30px var(--inner-glow),
+                /* Brillo interno */
+                0 50px 100px rgba(0, 0, 0, 0.8);
+
+            overflow: hidden;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Efecto de borde prismático (Reflejo en el lado opuesto) */
+        .liquid-glass::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 40px;
+            padding: 2px;
+            /* Grosor del "cristal" */
+            background: linear-gradient(var(--angle, 135deg),
+                    rgba(255, 255, 255, 0.8) 0%,
+                    transparent 20%,
+                    transparent 80%,
+                    rgba(255, 255, 255, 0.8) 100%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* Contenido */
+        .ui-content {
+            position: relative;
+            z-index: 20;
+            color: white;
+            padding: 60px;
+            text-align: left;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 4rem;
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="object-behind" id="bg-obj"></div>
+
+    <div class="glass-canvas">
+        <div class="liquid-glass" id="glass">
+            <div class="ui-content">
+                <div class="badge">macOS Tahoe Beta</div>
+                <h1>Liquid Glass.</h1>
+                <p style="opacity: 0.6; font-size: 1.2rem;">Observa cómo el borde refracta la luz del objeto trasero.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const glass = document.getElementById('glass');
+        const bgObj = document.getElementById('bg-obj');
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+
+            // 1. Mueve el objeto de fondo (simulando que algo pasa por detrás)
+            // Lo movemos de forma que siempre esté cerca de los bordes para ver la refracción
+            const objX = clientX - 150;
+            const objY = clientY - 150;
+            bgObj.style.transform = `translate(${objX}px, ${objY}px)`;
+
+            // 2. Cálculo dinámico del ángulo de luz para el borde
+            const rect = glass.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const angle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
+
+            // Aplicamos el ángulo al gradiente del borde para que el brillo "siga" a la luz
+            glass.style.setProperty('--angle', `${angle + 90}deg`);
+
+            // 3. Inclinación sutil
+            const rotX = (clientY - centerY) / 50;
+            const rotY = (clientX - centerX) / 50;
+            glass.style.transform = `perspective(1000px) rotateX(${-rotX}deg) rotateY(${rotY}deg)`;
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - Perfect Alignment Optics</title>
+    <style>
+        :root {
+            --bg: #010103;
+            --u-x: 50%;
+            --u-y: 50%;
+            --ref-y-near: 0%;
+            --ref-y-far: 100%;
+            --op-near: 0;
+            --op-far: 0;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        /* La ventana de luz que pasa por detrás */
+        .light-source {
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, #00f2fe 0%, #7000ff 30%, #ff00c8 50%, transparent 75%);
+            filter: blur(60px);
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            /* Centrado absoluto inicial */
+            top: 0;
+            left: 0;
+            will-change: transform;
+        }
+
+        .canvas {
+            position: relative;
+            width: 850px;
+            height: 520px;
+            z-index: 10;
+        }
+
+        .glass {
+            width: 100%;
+            height: 100%;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(100px) saturate(220%) contrast(110%);
+            -webkit-backdrop-filter: blur(100px) saturate(220%) contrast(110%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 40px 120px rgba(0, 0, 0, 0.9);
+        }
+
+        /* Máscaras de refracción interna */
+        .edge-mask {
+            position: absolute;
+            inset: 0;
+            border-radius: 50px;
+            padding: 3.5px;
+            pointer-events: none;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+
+        .near {
+            background: radial-gradient(circle at var(--u-x) var(--ref-y-near),
+                    rgba(255, 255, 255, var(--op-near)) 0%,
+                    transparent 50%);
+            z-index: 5;
+        }
+
+        .far {
+            background: radial-gradient(circle at var(--u-x) var(--ref-y-far),
+                    rgba(255, 255, 255, var(--op-far)) 0%,
+                    transparent 45%);
+            z-index: 4;
+            filter: blur(2px);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="light-source" id="light"></div>
+
+    <div class="canvas">
+        <div class="glass" id="card">
+            <div class="edge-mask near"></div>
+            <div class="edge-mask far"></div>
+        </div>
+    </div>
+
+    <script>
+        const light = document.getElementById('light');
+        const card = document.getElementById('card');
+        const root = document.documentElement;
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+
+            // 1. Alineación perfecta del objeto de fondo
+            // Usamos translate3d para mejor rendimiento
+            light.style.transform = `translate3d(${clientX - 225}px, ${clientY - 225}px, 0)`;
+
+            // 2. Coordenadas relativas a la tarjeta
+            const rect = card.getBoundingClientRect();
+            const relX = ((clientX - rect.left) / rect.width) * 100;
+            const relY = ((clientY - rect.top) / rect.height) * 100;
+
+            root.style.setProperty('--u-x', `${relX}%`);
+            root.style.setProperty('--u-y', `${relY}%`);
+
+            // 3. Lógica Tahoe de "Reflejo que nace desde adentro"
+            const ny = (relY - 50) / 50; // de -1 (arriba) a 1 (abajo)
+            const absNy = Math.abs(ny);
+
+            // Cálculo del desplazamiento del reflejo interno
+            // Cuando ny es -1 (borde), el reflejo está en 0%. 
+            // Cuando ny es 0 (centro), el reflejo está en 15% (hacia adentro).
+            let refY;
+            if (ny < 0) {
+                // Trayecto del borde superior
+                refY = (1 - absNy) * 20;
+            } else {
+                // Trayecto del borde inferior
+                refY = 100 - ((1 - absNy) * 20);
+            }
+
+            root.style.setProperty('--ref-y-near', `${refY}%`);
+            root.style.setProperty('--ref-y-far', `${100 - refY}%`);
+
+            // 4. Intensidad de la refracción
+            // El brillo es máximo justo cuando el mouse cruza el borde (absNy ≈ 1)
+            const intensityNear = Math.pow(absNy, 2) * 0.9 + 0.1;
+            const intensityFar = (1 - absNy) * 0.3 + (absNy * 0.5);
+
+            root.style.setProperty('--op-near', intensityNear);
+            root.style.setProperty('--op-far', intensityFar);
+        });
+    </script>
+</body>
+
+</html>

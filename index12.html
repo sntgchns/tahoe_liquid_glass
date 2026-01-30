@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - Definitive Dock Reflection</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --glass-border-base: rgba(255, 255, 255, 0.15);
+            --glass-surface: rgba(255, 255, 255, 0.03);
+            /* Variables de posición para los 3 reflejos */
+            --pos-l: 10%;
+            --pos-c: 50%;
+            --pos-r: 90%;
+            --op-l: 0;
+            --op-c: 0.8;
+            --op-r: 0;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* 1. OBJETO DE FONDO */
+        .object-behind {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #00C7FF 0%, #0076FF 40%, #7000FF 70%, transparent 80%);
+            border-radius: 50%;
+            filter: blur(50px);
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            opacity: 0.8;
+            will-change: transform;
+        }
+
+        /* 2. CONTENEDOR DEL DOCK */
+        .dock-container {
+            position: relative;
+            z-index: 10;
+            width: 900px;
+            height: 140px;
+            display: flex;
+            justify-content: center;
+            padding-bottom: 20px;
+        }
+
+        /* 3. EL CRISTAL LÍQUIDO (Dock Surface) */
+        .dock-glass {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 36px;
+
+            /* Efecto base de vidrio */
+            background: var(--glass-surface);
+            backdrop-filter: blur(60px) saturate(220%) contrast(120%);
+            -webkit-backdrop-filter: blur(60px) saturate(220%) contrast(120%);
+
+            border: 1px solid var(--glass-border-base);
+
+            box-shadow:
+                0 20px 50px rgba(0, 0, 0, 0.6),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly;
+            padding: 0 20px;
+
+            /* Eliminado transform 3D para evitar parallax */
+        }
+
+        /* 4. SISTEMA DE 3 REFLEJOS EN EL BORDE */
+        .dock-glass::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 36px;
+            padding: 1.5px;
+            /* Grosor del borde */
+
+            /* 
+               Usamos mask-composite para mostrar solo el borde, 
+               y background con 3 gradientes radiales que se mueven independientemente 
+            */
+            background:
+                radial-gradient(300px circle at var(--pos-l) 50%, rgba(255, 255, 255, var(--op-l)) 0%, transparent 50%),
+                radial-gradient(300px circle at var(--pos-c) 50%, rgba(255, 255, 255, var(--op-c)) 0%, transparent 50%),
+                radial-gradient(300px circle at var(--pos-r) 50%, rgba(255, 255, 255, var(--op-r)) 0%, transparent 50%);
+
+            background-blend-mode: screen;
+
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+
+            pointer-events: none;
+        }
+
+        /* ELEMENTOS DENTRO DEL DOCK */
+        .dock-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 22px;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            transition: background 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .dock-icon:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1) translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .label {
+            position: absolute;
+            bottom: -50px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="object-behind" id="bg-obj"></div>
+
+    <div class="dock-container">
+        <div class="dock-glass" id="dock">
+            <div class="dock-icon" style="background: linear-gradient(135deg, #FF9966, #FF5E62);"></div>
+            <div class="dock-icon" style="background: linear-gradient(135deg, #56CCF2, #2F80ED);"></div>
+            <div class="dock-icon" style="background: linear-gradient(135deg, #11998e, #38ef7d);"></div>
+            <div class="dock-icon" style="background: linear-gradient(135deg, #8E2DE2, #4A00E0);"></div>
+            <div class="dock-icon" style="background: linear-gradient(135deg, #F2994A, #F2C94C);"></div>
+            <div class="dock-icon" style="background: linear-gradient(135deg, #e1eec3, #f05053);"></div>
+
+            <div class="label">Reflejo de 3 Puntos (Sin Paralaje)</div>
+        </div>
+    </div>
+
+    <script>
+        const dock = document.getElementById('dock');
+        const bgObj = document.getElementById('bg-obj');
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+
+            // 1. MOVER OBJETO DE FONDO (Centrado perfecto)
+            const objW = 400;
+            const objH = 400;
+            bgObj.style.transform = `translate(${clientX - objW / 2}px, ${clientY - objH / 2}px)`;
+
+            // 2. LÓGICA DE REFLEJOS
+            const rect = dock.getBoundingClientRect();
+
+            // Coordenada X relativa al dock (0 a 100%)
+            // Clamp para que no se vaya muy lejos fuera del dock en el cálculo lógico
+            let rawX = (clientX - rect.left) / rect.width;
+            // Normalized X (-1 izquierda, 0 centro, 1 derecha)
+            let nx = (rawX - 0.5) * 2;
+
+            // Limitar nx visualmente solo un poco para que no desaparezca la luz de golpe
+            // aunque permitimos que siga al mouse
+
+            // --- CÁLCULO DE POSICIONES ---
+
+            // A) EL CENTRAL (El protagonista)
+            // Sigue al mouse directamente.
+            // Convertimos nx a porcentaje: (nx + 1) / 2 * 100 
+            // O simplemente rawX * 100
+            let posC = rawX * 100;
+
+            // B) LOS LATERALES (La reacción)
+            /*
+               Lógica:
+               - Hay 3 puntos "base": Left(0%), Center(50%), Right(100%).
+               - Si vamos al Right (nx > 0):
+                 - El reflejo RIGHT se queda esperando o se mueve poco hacia el centro para "fusionarse".
+                 - El reflejo LEFT se aleja hacia la izquierda (huyendo del centro).
+               - Si vamos al Left (nx < 0):
+                 - El reflejo LEFT se queda esperando/fusionando.
+                 - El reflejo RIGHT se aleja hacia la derecha.
+            */
+
+            let posL, posR;
+            // Factor de alejamiento del opuesto ("retreat")
+            const retreatFactor = 40; // Qué tanto se aleja %
+
+            // Posiciones base teóricas
+            const baseL = 0;   // 0%
+            const baseR = 100; // 100%
+
+            if (nx > 0) {
+                // Yendo a la DERECHA
+
+                // Reflejo Derecho (Target): Se queda en el borde o se acerca sutilmente
+                // Aquí lo dejamos fijo en el final (100%) para que el centro "llegue" a él
+                // O podemos hacer que se comprima un poco: 100 - (nx * 5)
+                posR = 100;
+
+                // Reflejo Izquierdo (Opuesto): Se aleja más a la izquierda
+                // Desde 0%, restamos proporcionalmente al movimiento
+                posL = baseL - (nx * retreatFactor);
+
+            } else {
+                // Yendo a la IZQUIERDA
+
+                // Reflejo Izquierdo (Target): Se queda fijo
+                posL = 0;
+
+                // Reflejo Derecho (Opuesto): Se aleja más a la derecha
+                // Desde 100%, sumamos proporcionalmente
+                posR = baseR + (Math.abs(nx) * retreatFactor);
+            }
+
+            // --- CÁLCULO DE OPACIDADES ---
+            /*
+               Queremos que el central siempre brille.
+               Los laterales brillan, pero al fusionarse con el central (cuando el central se acerca),
+               no queremos que se duplique la intensidad exageradamente, o quizás sí ("fusión brillante").
+               
+               Pero el opuesto que se aleja debería desvanecerse un poco para no distraer.
+            */
+
+            let opC = 0.8; // Central fuerte
+
+            // Opacidad base de los laterales
+            let opL = 0.5;
+            let opR = 0.5;
+
+            // Atenuar el que se aleja
+            if (nx > 0) {
+                // Yendo a derecha -> Izquierdo se aleja -> atenuar Izquierdo
+                opL = 0.5 - (nx * 0.5); // Baja hasta 0
+                // El derecho se mantiene o sube para recibir la fusión
+                opR = 0.5 + (nx * 0.3);
+            } else {
+                // Yendo a izquierda -> Derecho se aleja -> atenuar Derecho
+                opR = 0.5 - (Math.abs(nx) * 0.5);
+                opL = 0.5 + (Math.abs(nx) * 0.3);
+            }
+
+            // Aplicar variables CSS
+            dock.style.setProperty('--pos-c', `${posC}%`);
+            dock.style.setProperty('--pos-l', `${posL}%`);
+            dock.style.setProperty('--pos-r', `${posR}%`);
+
+            dock.style.setProperty('--op-c', opC);
+            dock.style.setProperty('--op-l', opL);
+            dock.style.setProperty('--op-r', opR);
+
+        });
+    </script>
+</body>
+
+</html>

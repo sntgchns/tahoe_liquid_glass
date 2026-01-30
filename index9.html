@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Tahoe - Pure Chromatic Refraction</title>
+    <style>
+        :root {
+            --bg: #000;
+            --u-x: 50%;
+            --u-y: 50%;
+            /* Dinámica de los bordes */
+            --near-y: 15%;
+            --far-y: 85%;
+            --near-op: 0;
+            --far-op: 0;
+            --glow-color: rgba(0, 242, 254, 0.5);
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        /* El objeto real detrás con color vibrante */
+        .light-source {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #00f2fe 0%, #7000ff 40%, #ff00c8 60%, transparent 80%);
+            filter: blur(50px);
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            top: 0;
+            left: 0;
+            will-change: transform;
+        }
+
+        .canvas {
+            position: relative;
+            width: 850px;
+            height: 520px;
+            z-index: 10;
+        }
+
+        .glass {
+            width: 100%;
+            height: 100%;
+            border-radius: 54px;
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(120px) saturate(250%) contrast(110%);
+            -webkit-backdrop-filter: blur(120px) saturate(250%) contrast(110%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.9);
+        }
+
+        /* REFRACCIÓN ÓPTICA: No es un borde, es luz proyectada */
+        .refraction-edge {
+            position: absolute;
+            inset: 0;
+            border-radius: 54px;
+            padding: 4px;
+            pointer-events: none;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            /* Aquí usamos overlay para que el borde tome el color del fondo */
+            mix-blend-mode: plus-lighter;
+        }
+
+        .near {
+            background: radial-gradient(circle at var(--u-x) var(--near-y),
+                    var(--glow-color) 0%,
+                    transparent 60%);
+            filter: brightness(1.5);
+            z-index: 5;
+        }
+
+        .far {
+            background: radial-gradient(circle at var(--u-x) var(--far-y),
+                    var(--glow-color) 0%,
+                    transparent 50%);
+            opacity: var(--far-op);
+            z-index: 4;
+            filter: blur(3px) brightness(1.2);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="light-source" id="light"></div>
+
+    <div class="canvas">
+        <div class="glass" id="card">
+            <div class="refraction-edge near"></div>
+            <div class="refraction-edge far"></div>
+        </div>
+    </div>
+
+    <script>
+        const light = document.getElementById('light');
+        const card = document.getElementById('card');
+        const root = document.documentElement;
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            light.style.transform = `translate3d(${clientX - 200}px, ${clientY - 200}px, 0)`;
+
+            const rect = card.getBoundingClientRect();
+            const relX = ((clientX - rect.left) / rect.width) * 100;
+            const relY = ((clientY - rect.top) / rect.height) * 100;
+            const ny = (relY - 50) / 50;
+            const absNy = Math.abs(ny);
+
+            root.style.setProperty('--u-x', `${relX}%`);
+
+            // EFECTO "DEMORA MILIMÉTRICA"
+            // El reflejo near comienza a "brotar" desde el 15% hacia el 0% 
+            // solo cuando el objeto está cerca de los bordes (absNy > 0.5)
+            let nearYPos, nearOpacity;
+
+            if (ny < 0) { // Lado Superior
+                nearYPos = (1 - absNy) * 30; // Nace al 30% y se acerca al 0%
+                nearOpacity = Math.max(0, (absNy - 0.2) * 1.2); // Demora en aparecer
+            } else { // Lado Inferior
+                nearYPos = 100 - ((1 - absNy) * 30);
+                nearOpacity = Math.max(0, (absNy - 0.2) * 1.2);
+            }
+
+            // El borde opuesto (far) es más reactivo desde el inicio (reflexión interna total)
+            const farOpacity = Math.min(0.8, (1 - absNy) + 0.2);
+
+            root.style.setProperty('--near-y', `${nearYPos}%`);
+            root.style.setProperty('--near-op', nearOpacity);
+            root.style.setProperty('--far-y', `${100 - nearYPos}%`);
+            root.style.setProperty('--far-op', farOpacity);
+
+            // Dinámica de Color: El borde toma el color promedio del gradiente
+            // Para fines de demo, cambiamos el color según la posición
+            const hue = 180 + (relY * 0.5);
+            root.style.setProperty('--glow-color', `hsla(${hue}, 100%, 70%, ${nearOpacity})`);
+        });
+    </script>
+</body>
+
+</html>
