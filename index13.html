@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>macOS Tahoe - Liquid Glass Ultra-Pro</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --border-light: rgba(255, 255, 255, 0.22);
+            --border-dark: rgba(0, 0, 0, 0.3);
+            --inner-glow: rgba(255, 255, 255, 0.05);
+            --mouse-x: 50%;
+            --mouse-y: 50%;
+            --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-family);
+            overflow: hidden;
+        }
+
+        /* ESCENA DE FONDO: Simulación de macOS Wallpaper dinámico */
+        .wallpaper {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: move 20s infinite alternate ease-in-out;
+        }
+
+        .blob-1 { width: 600px; height: 600px; background: #ff2d55; top: -10%; left: -10%; animation-delay: 0s; }
+        .blob-2 { width: 500px; height: 500px; background: #5856d6; bottom: -5%; right: -5%; animation-delay: -5s; }
+        .blob-3 { width: 450px; height: 450px; background: #007aff; top: 40%; left: 30%; animation-delay: -10s; }
+
+        @keyframes move {
+            from { transform: translate(0, 0) scale(1); }
+            to { transform: translate(100px, 50px) scale(1.1); }
+        }
+
+        /* EL CONTENEDOR DE CRISTAL */
+        .glass-container {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            z-index: 10;
+            perspective: 1000px;
+        }
+
+        .tahoe-glass {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            /* Apple "Squircle" approximate radius */
+            border-radius: 54px;
+            background: var(--glass-bg);
+            
+            /* EL MOTOR DE VIBRANCIA */
+            backdrop-filter: 
+                blur(60px) 
+                saturate(250%) 
+                brightness(1.1) 
+                contrast(1.05);
+            -webkit-backdrop-filter: 
+                blur(60px) 
+                saturate(250%) 
+                brightness(1.1) 
+                contrast(1.05);
+
+            /* ESTRUCTURA DE BORDES (Multi-capa para realismo) */
+            border: 0.5px solid var(--border-light);
+            box-shadow: 
+                /* Sombra ambiental profunda */
+                0 40px 80px rgba(0, 0, 0, 0.5),
+                /* Sombra de contacto */
+                0 10px 20px rgba(0, 0, 0, 0.3),
+                /* Brillo interno del borde */
+                inset 0 0 0 1px var(--inner-glow);
+            
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            color: white;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* CAPA DE RUIDO (Grain) - Crucial para macOS Material */
+        .noise {
+            position: absolute;
+            inset: 0;
+            opacity: 0.04;
+            pointer-events: none;
+            z-index: 2;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+        }
+
+        /* REFRACCIÓN LÍQUIDA DINÁMICA */
+        .refraction {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(
+                circle at var(--mouse-x) var(--mouse-y),
+                rgba(255, 255, 255, 0.12) 0%,
+                transparent 50%
+            );
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: soft-light;
+        }
+
+        /* CONTENIDO VIBRANTE */
+        .content {
+            position: relative;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .apple-logo {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            opacity: 0.9;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -1.5px;
+            background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-size: 18px;
+            line-height: 1.5;
+            max-width: 400px;
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+        }
+
+        .button-group {
+            margin-top: auto;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: white;
+            color: black;
+        }
+
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.85);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+            border: 0.5px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* LUZ DE BORDE (RIM LIGHTING) */
+        .rim-light {
+            position: absolute;
+            inset: 0;
+            border-radius: 54px;
+            padding: 1px;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            -webkit-mask-composite: xor;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .rim-light::before {
+            content: "";
+            position: absolute;
+            inset: -100px;
+            background: conic-gradient(
+                from 0deg at var(--mouse-x) var(--mouse-y),
+                transparent 0%,
+                rgba(255, 255, 255, 0.4) 15%,
+                transparent 30%,
+                transparent 70%,
+                rgba(255, 255, 255, 0.4) 85%,
+                transparent 100%
+            );
+            animation: rotate 10s linear infinite;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="wallpaper">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="glass-container" id="container">
+        <div class="tahoe-glass" id="card">
+            <div class="noise"></div>
+            <div class="refraction"></div>
+            <div class="rim-light"></div>
+
+            <div class="content">
+                <div class="header">
+                    <svg class="apple-logo" viewBox="0 0 170 170">
+                        <path d="M150.37,130.25c-2.45,5.66-5.35,10.87-8.71,15.66c-8.58,12.23-17.45,24.37-30.93,24.37c-13.1,0-17.65-8.02-33.05-8.02c-15.39,0-20.4,7.76-32.77,8.02c-12.86,0.26-22.63-13-31.22-25.4c-17.58-25.35-31.06-71.41-12.67-103.22c9.13-15.79,25.33-25.77,42.92-26.03c13.36-0.26,25.99,9,34.18,9c8.19,0,23.57-11.27,39.69-9.63c6.74,0.28,25.68,2.72,37.84,20.49c-0.97,0.6-22.48,13.1-22.48,39.42c0,31.54,27.32,42.4,27.7,42.56C153.25,123.01,150.8,129.25,150.37,130.25L150.37,130.25z M119.11,32.64c7.16-8.67,12-20.72,10.67-32.64c-10.35,0.42-22.86,6.9-30.3,15.57c-6.66,7.69-12.49,19.98-10.92,31.65C99.85,48.11,111.95,41.31,119.11,32.64L119.11,32.64z"/>
+                    </svg>
+                    <span style="font-weight: 500; font-size: 13px; opacity: 0.6;">macOS Tahoe Edition</span>
+                </div>
+
+                <h1>Liquid Glass</h1>
+                <p>Experimenta la profundidad visual del nuevo lenguaje de diseño. Vidrio líquido con refracción interna de 60px y motor de vibrancia de alta fidelidad.</p>
+
+                <div class="button-group">
+                    <button class="btn btn-primary">Empezar ahora</button>
+                    <button class="btn btn-secondary">Más información</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const card = document.getElementById('card');
+        const container = document.getElementById('container');
+        const root = document.documentElement;
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            const x = (clientX / window.innerWidth) * 100;
+            const y = (clientY / window.innerHeight) * 100;
+
+            root.style.setProperty('--mouse-x', `${x}%`);
+            root.style.setProperty('--mouse-y', `${y}%`);
+
+            // Parallax sutil de la tarjeta
+            const moveX = (clientX - window.innerWidth / 2) / 50;
+            const moveY = (clientY - window.innerHeight / 2) / 50;
+            
+            card.style.transform = `rotateY(${moveX}deg) rotateX(${-moveY}deg) translateZ(10px)`;
+        });
+
+        // Simular el efecto de "presión" al hacer click
+        document.addEventListener('mousedown', () => {
+            card.style.transform += ' scale(0.98)';
+        });
+        document.addEventListener('mouseup', () => {
+            card.style.transform = card.style.transform.replace(' scale(0.98)', '');
+        });
+    </script>
+</body>
+</html>

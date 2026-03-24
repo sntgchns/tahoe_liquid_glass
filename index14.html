@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>macOS Tahoe - Liquid Crystal Refraction</title>
+    <style>
+        :root {
+            --mouse-x: 50%;
+            --mouse-y: 50%;
+            --glass-blur: 50px;
+            --liquid-color: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: #020205;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+        }
+
+        /* FONDO DINÁMICO DE ALTO CONTRASTE */
+        .wallpaper {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 30%, #4000ff 0%, transparent 40%),
+                        radial-gradient(circle at 80% 70%, #ff0055 0%, transparent 40%),
+                        radial-gradient(circle at 50% 50%, #001122 0%, #000 100%);
+            z-index: 1;
+        }
+
+        .floating-orb {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(45deg, #00f2fe, #7000ff);
+            filter: blur(80px);
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: float 15s infinite alternate ease-in-out;
+        }
+
+        @keyframes float {
+            from { transform: translate(-10%, -10%) rotate(0deg); }
+            to { transform: translate(20%, 20%) rotate(360deg); }
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .glass-stage {
+            position: relative;
+            width: 850px;
+            height: 540px;
+            z-index: 10;
+            filter: drop-shadow(0 50px 100px rgba(0,0,0,0.8));
+        }
+
+        .liquid-card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 60px;
+            background: var(--liquid-color);
+            overflow: hidden;
+            
+            /* EFECTO BASE DE CRISTAL */
+            backdrop-filter: blur(var(--glass-blur)) saturate(200%) brightness(1.1);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(200%) brightness(1.1);
+            
+            border: 0.5px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            padding: 50px;
+            color: white;
+            
+            /* DISTORSIÓN DE LENTE (SVG FILTER) */
+            filter: url(#liquid-distortion);
+        }
+
+        /* REFLEJO ESPECULAR (LA "GOTA") */
+        .specular-highlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+            background: 
+                /* Brillo principal de la gota */
+                radial-gradient(circle 120px at var(--mouse-x) var(--mouse-y), 
+                    rgba(255, 255, 255, 0.15) 0%, 
+                    transparent 100%),
+                /* Reflejo "ventana" superior izquierdo de la gota */
+                radial-gradient(circle 20px at calc(var(--mouse-x) - 15px) calc(var(--mouse-y) - 15px), 
+                    rgba(255, 255, 255, 0.6) 0%, 
+                    transparent 100%);
+        }
+
+        /* IRIDISCENCIA DE CRISTAL LÍQUIDO */
+        .iridescence {
+            position: absolute;
+            inset: 0;
+            opacity: 0.03;
+            pointer-events: none;
+            background: conic-gradient(from 180deg at var(--mouse-x) var(--mouse-y), 
+                #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            mix-blend-mode: color-dodge;
+        }
+
+        /* CONTENIDO */
+        .content {
+            position: relative;
+            z-index: 30;
+            pointer-events: none; /* Dejamos que el mouse pase al card */
+        }
+
+        .content h1 {
+            font-size: 64px;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: -2px;
+            background: linear-gradient(to bottom, #fff, rgba(255,255,255,0.4));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .content p {
+            font-size: 20px;
+            max-width: 450px;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 20px;
+        }
+
+        /* SVG FILTERS (INVISIBLE) */
+        svg.filters {
+            position: absolute;
+            width: 0;
+            height: 0;
+        }
+
+        /* TEXTURA DE MICRO-RUIDO */
+        .grain {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            opacity: 0.15;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="wallpaper">
+        <div class="floating-orb" style="top: 20%; left: 10%;"></div>
+        <div class="floating-orb" style="bottom: 10%; right: 20%; background: linear-gradient(45deg, #ff0055, #ffcc00); animation-delay: -7s;"></div>
+    </div>
+
+    <div class="glass-stage">
+        <div class="liquid-card" id="card">
+            <div class="grain"></div>
+            <div class="specular-highlight"></div>
+            <div class="iridescence"></div>
+
+            <div class="content">
+                <div style="font-weight: 600; font-size: 14px; opacity: 0.5; margin-bottom: 20px; letter-spacing: 2px; text-transform: uppercase;">
+                    Liquid Crystal Engine v2
+                </div>
+                <h1>Surface Tension</h1>
+                <p>La refracción interna de este panel simula la viscosidad del cristal líquido bajo tensión superficial.</p>
+                
+                <div style="margin-top: auto; display: flex; gap: 20px; pointer-events: auto;">
+                    <div style="width: 50px; height: 50px; border-radius: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); display: grid; place-items: center; cursor: pointer;">
+                        <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                    <div style="flex: 1; height: 50px; border-radius: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; padding: 0 20px; font-weight: 500; cursor: pointer;">
+                        Interacción Fluida Activada
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTROS DE DISTORSIÓN ÓPTICA -->
+    <svg class="filters">
+        <defs>
+            <filter id="liquid-distortion">
+                <!-- Generamos una perturbación basada en ruido que moveremos con JS -->
+                <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" result="noise" seed="2" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="20" xChannelSelector="R" yChannelSelector="G" result="distorted" />
+                
+                <!-- Efecto de lente circular centrado en el ratón (se actualiza vía JS) -->
+                <feGaussianBlur in="distorted" stdDeviation="0" result="blur" />
+            </filter>
+        </defs>
+    </svg>
+
+    <script>
+        const card = document.getElementById('card');
+        const root = document.documentElement;
+        const feDisplacement = document.querySelector('feDisplacementMap');
+        const feTurbulence = document.querySelector('feTurbulence');
+
+        let targetX = 50;
+        let targetY = 50;
+        let currentX = 50;
+        let currentY = 50;
+
+        document.addEventListener('mousemove', (e) => {
+            const { clientX, clientY } = e;
+            targetX = (clientX / window.innerWidth) * 100;
+            targetY = (clientY / window.innerHeight) * 100;
+
+            // Actualizar variables de CSS para el brillo especular
+            root.style.setProperty('--mouse-x', `${targetX}%`);
+            root.style.setProperty('--mouse-y', `${targetY}%`);
+        });
+
+        // Loop de animación para suavizar el movimiento de la "gota"
+        function update() {
+            currentX += (targetX - currentX) * 0.1;
+            currentY += (targetY - currentY) * 0.1;
+
+            // Modificamos la escala del desplazamiento según la velocidad/posición
+            // para simular que el líquido se "estira"
+            const dist = Math.hypot(targetX - currentX, targetY - currentY);
+            const dynamicScale = 15 + (dist * 2);
+            
+            feDisplacement.setAttribute('scale', dynamicScale);
+            
+            // Movemos sutilmente el seed o la frecuencia para que el líquido "viva"
+            feTurbulence.setAttribute('seed', Math.floor(Date.now() / 100));
+
+            requestAnimationFrame(update);
+        }
+
+        update();
+
+        // Efecto de click (tensión de superficie)
+        document.addEventListener('mousedown', () => {
+            feDisplacement.setAttribute('scale', '60');
+            card.style.transition = 'transform 0.1s';
+            card.style.transform = 'scale(0.98) translateY(5px)';
+        });
+
+        document.addEventListener('mouseup', () => {
+            feDisplacement.setAttribute('scale', '20');
+            card.style.transform = 'scale(1) translateY(0)';
+        });
+    </script>
+</body>
+</html>
